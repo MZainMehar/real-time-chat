@@ -45,3 +45,6 @@ app.prepare().then(() => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
   });
 });
+
+
+// Real-Time-Chat is a simple chat application built with Next.js and Socket.io. It allows users to send messages in real-time and see when other users are typing. The application consists of a front-end and a back-end. The front-end is built with Next.js and includes a chat interface where users can enter their name, send messages, and see messages from other users. The back-end is built with Socket.io and handles the real-time communication between clients. The back-end server listens for incoming messages and broadcasts them to all connected clients. It also listens for typing events and broadcasts them to other clients to show when a user is typing a message. The application demonstrates how to build a real-time chat application using Next.js and Socket.io, and how to handle real-time communication between clients in a web application.
