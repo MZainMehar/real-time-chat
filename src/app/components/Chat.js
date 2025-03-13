@@ -13,6 +13,9 @@ export default function ChatPage() {
   const [privateRecipient, setPrivateRecipient] = useState("");
   const [privateMessage, setPrivateMessage] = useState("");
   const [joined, setJoined] = useState(false);
+  const [typingUser, setTypingUser] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
 
   useEffect(() => {
     const socketInstance = io("http://localhost:3000");
@@ -20,6 +23,16 @@ export default function ChatPage() {
 
     socketInstance.on("receiveMessage", (msg) => {
       setMessages((prev) => [...prev, msg]);
+    });
+
+    socketInstance.on("userTyping", (user) => {
+      console.log(`Received typing event: ${user}`); // ✅ Debug log
+      setTypingUser(user);
+    });
+
+    socketInstance.on("userStoppedTyping", () => {
+      console.log("Typing stopped event received"); // ✅ Debug log
+      setTypingUser("");
     });
 
     socketInstance.on("receivePrivateMessage", (msg) => {
@@ -58,7 +71,26 @@ export default function ChatPage() {
     if (socket && message.trim()) {
       socket.emit("sendMessage", { username, message });
       setMessage("");
+      socket.emit("stopTyping");
     }
+  };
+
+  const handleTyping = () => {
+    if (!isTyping && username.trim() !== "") {
+      console.log("Emitting typing event"); // ✅ Debug log
+      setIsTyping(true);
+      socket.emit("typing", username);
+    }
+
+    if (typingTimeout) clearTimeout(typingTimeout);
+
+    const timeout = setTimeout(() => {
+      console.log("Emitting stopTyping event"); // ✅ Debug log
+      setIsTyping(false);
+      socket.emit("stopTyping");
+    }, 2000);
+
+    setTypingTimeout(timeout);
   };
 
   const sendPrivateMessage = () => {
@@ -125,23 +157,33 @@ export default function ChatPage() {
                 <span className="font-semibold text-blue-400">
                   {msg.username}
                 </span>
-                : {msg.message}
+                : {msg.message} <span className="text-xs">{msg.timestamp}</span>
               </div>
             ))}
           </div>
+
+          {/* Typing Indicator */}
+          {typingUser && (
+            <p className="text-sm text-green-400 mt-2">
+              {typingUser} is typing...
+            </p>
+          )}
 
           {/* Message Input */}
           <div className="mt-4 flex">
             <input
               type="text"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                handleTyping();
+              }}
               className="p-2 border rounded-l bg-gray-700 text-white w-72"
               placeholder="Type a message..."
             />
             <button
               onClick={sendMessage}
-              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-r"
+              className="ml-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-r"
             >
               Send
             </button>
@@ -194,7 +236,7 @@ export default function ChatPage() {
                   }`}
                 >
                   <span className="font-semibold">{msg.sender}</span>:{" "}
-                  {msg.message}
+                  {msg.message} <span className="text-xs">{msg.timestamp}</span>
                 </div>
               </div>
             ))}
