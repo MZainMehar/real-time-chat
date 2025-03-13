@@ -23,7 +23,15 @@ export default function ChatPage() {
     });
 
     socketInstance.on("receivePrivateMessage", (msg) => {
-      setPrivateMessages((prev) => [...prev, msg]);
+      setPrivateMessages((prev) => [
+        ...prev,
+        {
+          sender: msg.sender,
+          message: msg.message,
+          timestamp: msg.timestamp,
+          self: msg.sender === username, // Mark messages sent by the current user
+        },
+      ]);
     });
 
     socketInstance.on("chatNotification", (msg) => {
@@ -55,12 +63,24 @@ export default function ChatPage() {
 
   const sendPrivateMessage = () => {
     if (socket && privateMessage.trim() && privateRecipient.trim()) {
+      const newMessage = {
+        sender: "You",
+        recipient: privateRecipient,
+        message: privateMessage,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      // Update sender's private messages immediately
+      setPrivateMessages((prev) => [...prev, newMessage]);
+
+      // Emit the private message to the server
       socket.emit("privateMessage", {
         recipient: privateRecipient,
         sender: username,
         message: privateMessage,
       });
-      setPrivateMessage("");
+
+      setPrivateMessage(""); // Clear input
     }
   };
 
@@ -102,7 +122,10 @@ export default function ChatPage() {
           <div className="border p-4 w-96 h-80 overflow-auto bg-gray-800 rounded-lg shadow-lg">
             {messages.map((msg, index) => (
               <div key={index} className="p-2 border-b border-gray-700">
-                <span className="font-semibold text-blue-400">{msg.username}</span>: {msg.message}
+                <span className="font-semibold text-blue-400">
+                  {msg.username}
+                </span>
+                : {msg.message}
               </div>
             ))}
           </div>
@@ -116,7 +139,10 @@ export default function ChatPage() {
               className="p-2 border rounded-l bg-gray-700 text-white w-72"
               placeholder="Type a message..."
             />
-            <button onClick={sendMessage} className="p-2 bg-blue-600 hover:bg-blue-700 rounded-r">
+            <button
+              onClick={sendMessage}
+              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-r"
+            >
               Send
             </button>
           </div>
@@ -129,9 +155,11 @@ export default function ChatPage() {
               className="p-2 border bg-gray-700 text-white rounded"
             >
               <option value="">Select User</option>
-              {users.filter(user => user !== username).map((user) => (
-                <option key={user}>{user}</option>
-              ))}
+              {users
+                .filter((user) => user !== username)
+                .map((user) => (
+                  <option key={user}>{user}</option>
+                ))}
             </select>
             <input
               type="text"
@@ -140,17 +168,34 @@ export default function ChatPage() {
               value={privateMessage}
               onChange={(e) => setPrivateMessage(e.target.value)}
             />
-            <button onClick={sendPrivateMessage} className="ml-2 p-2 bg-purple-600 hover:bg-purple-700 rounded">
+            <button
+              onClick={sendPrivateMessage}
+              className="ml-2 p-2 bg-purple-600 hover:bg-purple-700 rounded"
+            >
               Send DM
             </button>
           </div>
 
-          {/* Private Messages */}
+          {/* Private Messages Section */}
           <div className="mt-6 p-4 border w-96 h-40 overflow-auto bg-gray-800 rounded-lg shadow-lg">
             <h3 className="text-lg font-semibold mb-2">📩 Private Messages</h3>
             {privateMessages.map((msg, index) => (
-              <div key={index} className="p-2 border-b border-gray-700">
-                <span className="font-semibold text-purple-400">{msg.sender}</span>: {msg.message}
+              <div
+                key={index}
+                className={`p-2 border-b border-gray-700 flex ${
+                  msg.sender === "You" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-lg ${
+                    msg.sender === "You"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-white"
+                  }`}
+                >
+                  <span className="font-semibold">{msg.sender}</span>:{" "}
+                  {msg.message}
+                </div>
               </div>
             ))}
           </div>

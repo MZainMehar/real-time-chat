@@ -63,6 +63,13 @@ app.prepare().then(() => {
           timestamp: new Date().toLocaleTimeString(),
         });
       }
+
+        // ALSO send the private message to the sender
+        io.to(socket.id).emit("receivePrivateMessage", {
+          sender,
+          message,
+          timestamp: new Date().toLocaleTimeString(),
+        });
     });
 
     socket.on("disconnect", () => {
